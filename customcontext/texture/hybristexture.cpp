@@ -251,7 +251,7 @@ void NativeBuffer::release()
 
 NativeBuffer *NativeBuffer::create(const QImage &image)
 {
-    if (image.width() * image.height() < 500 * 500 || image.depth() != 32)
+    //if (image.width() * image.height() < 500 * 500 || image.depth() != 32)
         return 0;
 
     if (!eglHybrisCreateNativeBuffer) {
