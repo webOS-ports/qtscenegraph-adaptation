@@ -148,7 +148,11 @@ NativeBuffer::NativeBuffer(const QImage &image)
     const int w = image.width();
     if (simpleCopy) {
         if (dbpl == image.bytesPerLine()) {
-            memcpy(data, image.constBits(), image.byteCount());
+            #if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+                memcpy(data, image.constBits(), image.sizeInBytes());
+            #else
+                memcpy(data, image.constBits(), image.byteCount());
+            #endif
         } else {
             int bpl = qMin(dbpl, image.bytesPerLine());
             for (int y=0; y<h; ++y)
@@ -318,7 +322,11 @@ void EglGrallocTexture::bind()
 
         int error;
         while ((error = glGetError()) != GL_NO_ERROR)
-            qDebug() << "Error after glEGLImageTargetTexture2DOES" << hex << error;
+            #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+                qDebug() << "Error after glEGLImageTargetTexture2DOES" << Qt::hex << error;
+            #else
+                qDebug() << "Error after glEGLImageTargetTexture2DOES" << hex << error;
+            #endif
 
         if (Q_UNLIKELY(qsg_render_timing))
             qDebug("   - eglgralloctexture(%dx%d) bind=%d ms", m_buffer->width, m_buffer->height, (int) qsg_renderer_timer.elapsed());

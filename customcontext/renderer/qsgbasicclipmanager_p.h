@@ -184,7 +184,7 @@ void QSGBasicClipManager::activate(const QSGClipNode *clip,
                     m_program = new QOpenGLShaderProgram();
                     QSGShaderSourceBuilder::initializeProgramFromFiles(
                         m_program,
-#if QT_VERSION >= 0x050600
+#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
                         QStringLiteral(":/qt-project.org/scenegraph/shaders/stencilclip.vert"),
                         QStringLiteral(":/qt-project.org/scenegraph/shaders/stencilclip.frag")
 #else

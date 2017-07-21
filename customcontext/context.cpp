@@ -94,26 +94,15 @@
 #include <private/qsgdefaultrectanglenode_p.h>
 #endif
 
-#if QT_VERSION >= 0x050200
-#define CONTEXT_CLASS RenderContext
-#define CONTEXT_CLASS_BASE QSGRenderContext
-#else
-#define CONTEXT_CLASS Context
-#define CONTEXT_CLASS_BASE QSGContext
-#endif
-
-#if QT_VERSION >= 0x050200
 #ifndef QSG_NO_RENDERER_TIMING
 static bool qsg_render_timing = !qgetenv("QSG_RENDER_TIMING").isEmpty();
-#endif
 #endif
 
 namespace CustomContext
 {
 
-#if QT_VERSION >= 0x050200
 RenderContext::RenderContext(QSGContext *ctx)
-    : QSGRenderContext(ctx)
+    : RENDER_CONTEXT_CLASS_BASE(ctx)
 {
 #ifdef CUSTOMCONTEXT_DITHER
     m_dither = qgetenv("CUSTOMCONTEXT_NO_DITHER").isEmpty();
@@ -147,7 +136,7 @@ QSGMaterialShader *RenderContext::prepareMaterial(QSGMaterial *material)
 
     shader = material->createShader();
     compile(shader, material);
-    QSGRenderContext::initialize(shader);
+    RENDER_CONTEXT_CLASS_BASE::initialize(shader);
     m_materials[type] = shader;
 
 #ifndef QSG_NO_RENDER_TIMING
@@ -158,10 +147,9 @@ QSGMaterialShader *RenderContext::prepareMaterial(QSGMaterial *material)
     return shader;
 }
 #endif  //CUSTOMCONTEXT_OVERLAPRENDERER
-#endif  //QT_VERSION >= 0x050200
 
 Context::Context(QObject *parent)
-    : QSGContext(parent)
+    : CONTEXT_CLASS_BASE(parent)
     , m_sampleCount(0)
     , m_useMultisampling(false)
 #ifdef CUSTOMCONTEXT_HYBRISTEXTURE
@@ -214,22 +202,6 @@ Context::Context(QObject *parent)
     m_defaultRectangleNodes = qEnvironmentVariableIsSet("CUSTOMCONTEXT_DEFAULT_RECTANGLENODES");
 #endif
 
-#if QT_VERSION < 0x050200
-#ifdef CUSTOMCONTEXT_DITHER
-    m_dither = qgetenv("CUSTOMCONTEXT_NO_DITHER").isEmpty();
-    m_ditherProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    m_overlapRenderer = qgetenv("CUSTOMCONTEXT_NO_OVERLAPRENDERER").isEmpty();
-    m_clipProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    m_materialPreloading = qgetenv("CUSTOMCONTEXT_NO_MATERIAL_PRELOADING").isEmpty();
-#endif
-#endif  //QT_VERSION < 0x050200
-
 #ifdef CUSTOMCONTEXT_DEBUG
     qDebug("CustomContext created:");
     qDebug(" - multisampling: %s, samples=%d", m_useMultisampling ? "yes" : "no", m_sampleCount);
@@ -261,18 +233,6 @@ Context::Context(QObject *parent)
     qDebug(" - non preserved textures: %s", m_nonPreservedTexture ? "yes" : "no");
 #endif
 
-#if QT_VERSION < 0x050200
-#ifdef CUSTOMCONTEXT_DITHER
-    qDebug(" - ordered 2x2 dither: %s", m_dither ? "yes" : "no");
-#endif
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    qDebug(" - overlaprenderer: %s", m_overlapRenderer ? "yes" : "no");
-#endif
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    qDebug(" - material preload: %s", m_materialPreloading ? "yes" : "no");
-#endif
-#endif  //QT_VERSION < 0x050200
-
 #ifdef CUSTOMCONTEXT_NO_DFGLYPHS
     qDebug(" - distance fields disabled");
 #endif
@@ -302,15 +262,25 @@ void Context::renderContextInitialized(QSGRenderContext *ctx)
 
 #endif // CUSTOMCONTEXT_HYBRISTEXTURE
 
-    QSGContext::renderContextInitialized(ctx);
+    CONTEXT_CLASS_BASE::renderContextInitialized(ctx);
 }
 
 
 
 
 
-void CONTEXT_CLASS::initialize(QOpenGLContext *context)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+void RenderContext::initialize(const InitParams *inCtx)
 {
+#elif QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+void RenderContext::initialize(void *inCtx)
+{
+    QOpenGLContext *context = static_cast<QOpenGLContext*>(inCtx);
+#else
+void RenderContext::initialize(QOpenGLContext *inCtx)
+{
+    QOpenGLContext *context = inCtx;
+#endif
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither)
@@ -389,24 +359,14 @@ void CONTEXT_CLASS::initialize(QOpenGLContext *context)
     if (m_materialPreloading)
         qDebug(" - Standard materials compiled in: %d ms", (int) prepareTimer.elapsed());
 #endif
-#if QT_VERSION < 0x050200
-    qDebug(" - OpenGL extensions: %s", glGetString(GL_EXTENSIONS));
-    qDebug(" - OpenGL Vendor: %s", glGetString(GL_VENDOR));
-    qDebug(" - OpenGL Version: %s", glGetString(GL_VERSION));
-    qDebug(" - OpenGL Renderer: %s", glGetString(GL_RENDERER));
-    qDebug(" - OpenGL Shading Language Version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-    int textureSize;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &textureSize);
-    qDebug(" - GL Max Texture Size: %d", textureSize);
-#endif
 #endif
 
-    CONTEXT_CLASS_BASE::initialize(context);
+    RENDER_CONTEXT_CLASS_BASE::initialize(inCtx);
 }
 
-void CONTEXT_CLASS::invalidate()
+void RenderContext::invalidate()
 {
-    CONTEXT_CLASS_BASE::invalidate();
+    RENDER_CONTEXT_CLASS_BASE::invalidate();
 
 #ifdef CUSTOMCONTEXT_DITHER
     delete m_ditherProgram;
@@ -438,8 +398,8 @@ QSurfaceFormat Context::defaultSurfaceFormat() const
 }
 #endif
 
-#if QT_VERSION >= 0x050600
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
+#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
+QSGTexture *RenderContext::createTexture(const QImage &image, uint flags) const
 {
     if (flags & QQuickWindow::TextureCanUseAtlas) {
 #ifdef CUSTOMCONTEXT_ATLASTEXTURE
@@ -484,12 +444,12 @@ QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
 #endif
 
 
-    return CONTEXT_CLASS_BASE::createTexture(image, flags);
+    return RENDER_CONTEXT_CLASS_BASE::createTexture(image, flags);
 }
 
 #else
 
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image) const
+QSGTexture *RenderContext::createTexture(const QImage &image) const
 {
 #ifdef CUSTOMCONTEXT_ATLASTEXTURE
     if (m_atlasTexture) {
@@ -504,10 +464,9 @@ QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image) const
         return new MacTexture(image);
 #endif
 
-    return CONTEXT_CLASS_BASE::createTexture(image);
+    return RENDER_CONTEXT_CLASS_BASE::createTexture(image);
 }
 
-#if QT_VERSION >= 0x050200
 QSGTexture *RenderContext::createTextureNoAtlas(const QImage &image) const
 {
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
@@ -537,17 +496,14 @@ QSGTexture *RenderContext::createTextureNoAtlas(const QImage &image) const
     }
 #endif
 
-    return CONTEXT_CLASS_BASE::createTextureNoAtlas(image);
+    return RENDER_CONTEXT_CLASS_BASE::createTextureNoAtlas(image);
 }
-
-// Qt 5.2 branch
-#endif
 
 // Qt 5.6 branch
 #endif
 
 
-QSGRenderer *CONTEXT_CLASS::createRenderer()
+QSGRenderer *RenderContext::createRenderer()
 {
 #ifdef CUSTOMCONTEXT_OVERLAPRENDERER
     if (m_overlapRenderer) {
@@ -560,7 +516,7 @@ QSGRenderer *CONTEXT_CLASS::createRenderer()
 #ifdef CUSTOMCONTEXT_SIMPLERENDERER
     return new QSGSimpleRenderer::Renderer(this);
 #endif
-    return CONTEXT_CLASS_BASE::createRenderer();
+    return RENDER_CONTEXT_CLASS_BASE::createRenderer();
 }
 
 
@@ -576,7 +532,7 @@ QAnimationDriver *Context::createAnimationDriver(QObject *parent)
         return new SwapListeningAnimationDriver();
 #endif
 
-   return QSGContext::createAnimationDriver(parent);
+   return CONTEXT_CLASS_BASE::createAnimationDriver(parent);
 }
 
 
@@ -614,11 +570,13 @@ QQuickTextureFactory *Context::createTextureFactory(const QImage &image)
     return 0;
 }
 
-
-
-void CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+void RenderContext::renderNextFrame(QSGRenderer *renderer, uint fbo)
+#else
+void RenderContext::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
+#endif
 {
-    CONTEXT_CLASS_BASE::renderNextFrame(renderer, fbo);
+    RENDER_CONTEXT_CLASS_BASE::renderNextFrame(renderer, fbo);
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither) {
@@ -653,12 +611,12 @@ public:
 
 QSGImageNode *Context::createImageNode()
 {
-    return m_defaultImageNodes ? QSGContext::createImageNode() : new MSAAImageNode();
+    return m_defaultImageNodes ? CONTEXT_CLASS_BASE::createImageNode() : new MSAAImageNode();
 }
 
 QSGRectangleNode *Context::createRectangleNode()
 {
-    return m_defaultRectangleNodes ? QSGContext::createRectangleNode() : new MSAARectangleNode();
+    return m_defaultRectangleNodes ? CONTEXT_CLASS_BASE::createRectangleNode() : new MSAARectangleNode();
 }
 #endif
 

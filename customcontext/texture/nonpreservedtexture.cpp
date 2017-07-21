@@ -25,28 +25,12 @@ NonPreservedTextureFactory::NonPreservedTextureFactory(const QImage &image, Cont
 
 QSGTexture *NonPreservedTextureFactory::createTexture(QQuickWindow *window) const
 {
-#if QT_VERSION >= 0x050200
     Q_ASSERT(window);
     QSGRenderContext *renderContext = static_cast<QQuickWindowPrivate *>(QObjectPrivate::get(window))->context;
     Q_ASSERT(renderContext);
     QSGTexture *texture = renderContext->createTexture(m_image);
     m_image = QImage(); // remove the reference to the QImage
     return texture;
-#else
-    Q_UNUSED(window);
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    if (m_context->m_atlasTexture) {
-        QSGTexture *atlasedTexture = m_context->m_atlasManager.create(m_image);
-        if (atlasedTexture)
-            return atlasedTexture;
-    }
-#endif  //CUSTOMCONTEXT_ATLASTEXTURE
-
-    QSGPlainTexture *t = new QSGPlainTexture();
-    t->setImage(m_image);
-    m_image = QImage();
-    return t;
-#endif  //QT_VERSION
 }
 
 } // end of namespace

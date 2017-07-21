@@ -161,7 +161,7 @@ public:
 
     void sanityCheck();
 
-    void compileAndInsert(QSGRenderContext *rc, const QByteArray &key, QSGMaterialShader *s, QSGMaterial *m, const char *v, const char *f);
+    void compileAndInsert(RENDER_CONTEXT_CLASS_BASE *rc, const QByteArray &key, QSGMaterialShader *s, QSGMaterial *m, const char *v, const char *f);
 
 private:
     QCryptographicHash m_hash;
@@ -239,10 +239,10 @@ void ProgramBinaryStore::purge(const QByteArray &key)
         file.remove();
 }
 
-void ProgramBinaryStore::compileAndInsert(QSGRenderContext *rc, const QByteArray &key, QSGMaterialShader *s, QSGMaterial *m, const char *v, const char *f)
+void ProgramBinaryStore::compileAndInsert(RENDER_CONTEXT_CLASS_BASE *rc, const QByteArray &key, QSGMaterialShader *s, QSGMaterial *m, const char *v, const char *f)
 {
     // Use the baseclass impl to do the actual compilation
-    rc->QSGRenderContext::compile(s, m, v, f);
+    rc->RENDER_CONTEXT_CLASS_BASE::COMPILESHADER_METHOD(s, m, v, f);
     QOpenGLShaderProgram *p = s->program();
     if (p->isLinked()) {
         ProgramBinary *b = new ProgramBinary;
@@ -264,7 +264,7 @@ void ProgramBinaryStore::compileAndInsert(QSGRenderContext *rc, const QByteArray
     }
 }
 
-void RenderContext::compile(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex, const char *fragment)
+void RenderContext::COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex, const char *fragment)
 {
     ProgramBinaryStore *store = ProgramBinaryStore::self();
     if (!store->hasOpenGLES3())
@@ -272,7 +272,7 @@ void RenderContext::compile(QSGMaterialShader *shader, QSGMaterial *material, co
 
     // We cannot cache shaders which have custom compilation
     if (material->flags() & QSGMaterial::CustomCompileStep) {
-        QSGRenderContext::compile(shader, material, vertex, fragment);
+        RENDER_CONTEXT_CLASS_BASE::COMPILESHADER_METHOD(shader, material, vertex, fragment);
         return;
     }
 

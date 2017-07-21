@@ -59,34 +59,53 @@
 #include "threaduploadtexture.h"
 #endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+#include <private/qsgdefaultcontext_p.h>
+#include <private/qsgdefaultrendercontext_p.h>
+#endif
 
-#if QT_VERSION >= 0x050200
 struct QSGMaterialType;
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+#define CONTEXT_CLASS_BASE QSGDefaultContext
+#define RENDER_CONTEXT_CLASS_BASE QSGDefaultRenderContext
+#define COMPILESHADER_METHOD compileShader
+#else
+#define CONTEXT_CLASS_BASE QSGContext
+#define RENDER_CONTEXT_CLASS_BASE QSGRenderContext
+#define COMPILESHADER_METHOD compile
 #endif
 
 namespace CustomContext
 {
 
-#if QT_VERSION >= 0x050200
-class RenderContext : public QSGRenderContext
+class RenderContext : public RENDER_CONTEXT_CLASS_BASE
 {
 public:
     RenderContext(QSGContext *ctx);
-    void initialize(QOpenGLContext *context);
-    void invalidate();
-    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
 
-#if QT_VERSION < 0x050600
-    QSGTexture *createTexture(const QImage &image) const;
-    QSGTexture *createTextureNoAtlas(const QImage &image) const;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+    void renderNextFrame(QSGRenderer *renderer, uint fbo);
 #else
-    QSGTexture *createTexture(const QImage &image, uint flags) const;
+    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
 #endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    void initialize(const InitParams *inCtx);
+#elif QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+    void initialize(void *context);
+#else
+    void initialize(QOpenGLContext *context);    
+#endif
+
+    void invalidate();
+
+    QSGTexture *createTexture(const QImage &image, uint flags) const;
 
     QSGRenderer *createRenderer();
 
 #ifdef PROGRAM_BINARY
-    void compile(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0);
+    void COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0);
 #endif
 
 #ifdef CUSTOMCONTEXT_DITHER
@@ -108,24 +127,15 @@ public:
 #endif
 #endif
 };
-#endif
 
-class Context : public QSGContext
+class Context : public CONTEXT_CLASS_BASE
 {
     Q_OBJECT
 public:
     explicit Context(QObject *parent = 0);
 
-#if QT_VERSION >= 0x050200
     QSGRenderContext *createRenderContext() { return new RenderContext(this); }
     void renderContextInitialized(QSGRenderContext *renderContext) Q_DECL_OVERRIDE;
-#else
-    void initialize(QOpenGLContext *context);
-    void invalidate();
-    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
-    QSGTexture *createTexture(const QImage &image) const;
-    QSGRenderer *createRenderer();
-#endif
 
     QAnimationDriver *createAnimationDriver(QObject *parent);
 #ifdef CUSTOMCONTEXT_SURFACEFORMAT
@@ -155,40 +165,6 @@ private:
     int m_sampleCount;
     uint m_useMultisampling : 1;
     uint m_depthBuffer : 1;
-
-#if QT_VERSION < 0x50200
-    friend class RenderContext;
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    bool m_materialPreloading;
-#endif
-
-#ifdef CUSTOMCONTEXT_DITHER
-    bool m_dither;
-    OrderedDither2x2 *m_ditherProgram;
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    bool m_overlapRenderer;
-    QOpenGLShaderProgram *m_clipProgram;
-    int m_clipMatrixID;
-#endif
-
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    TextureAtlasManager m_atlasManager;
-    bool m_atlasTexture;
-#endif
-
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    bool m_macTexture;
-#endif
-
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    ThreadUploadTextureManager m_threadUploadManager;
-    bool m_threadUploadTexture;
-#endif
-
-#endif // Qt < 5.2.0
 
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
     bool m_nonPreservedTexture;
