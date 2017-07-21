@@ -95,14 +95,6 @@
 #endif
 
 #if QT_VERSION >= 0x050200
-#define CONTEXT_CLASS RenderContext
-#define CONTEXT_CLASS_BASE QSGRenderContext
-#else
-#define CONTEXT_CLASS Context
-#define CONTEXT_CLASS_BASE QSGContext
-#endif
-
-#if QT_VERSION >= 0x050200
 #ifndef QSG_NO_RENDERER_TIMING
 static bool qsg_render_timing = !qgetenv("QSG_RENDER_TIMING").isEmpty();
 #endif
@@ -113,7 +105,7 @@ namespace CustomContext
 
 #if QT_VERSION >= 0x050200
 RenderContext::RenderContext(QSGContext *ctx)
-    : QSGRenderContext(ctx)
+    : RENDER_CONTEXT_CLASS_BASE(ctx)
 {
 #ifdef CUSTOMCONTEXT_DITHER
     m_dither = qgetenv("CUSTOMCONTEXT_NO_DITHER").isEmpty();
@@ -147,7 +139,7 @@ QSGMaterialShader *RenderContext::prepareMaterial(QSGMaterial *material)
 
     shader = material->createShader();
     compile(shader, material);
-    QSGRenderContext::initialize(shader);
+    RENDER_CONTEXT_CLASS_BASE::initialize(shader);
     m_materials[type] = shader;
 
 #ifndef QSG_NO_RENDER_TIMING
@@ -161,7 +153,7 @@ QSGMaterialShader *RenderContext::prepareMaterial(QSGMaterial *material)
 #endif  //QT_VERSION >= 0x050200
 
 Context::Context(QObject *parent)
-    : QSGContext(parent)
+    : CONTEXT_CLASS_BASE(parent)
     , m_sampleCount(0)
     , m_useMultisampling(false)
 #ifdef CUSTOMCONTEXT_HYBRISTEXTURE
@@ -302,15 +294,22 @@ void Context::renderContextInitialized(QSGRenderContext *ctx)
 
 #endif // CUSTOMCONTEXT_HYBRISTEXTURE
 
-    QSGContext::renderContextInitialized(ctx);
+    CONTEXT_CLASS_BASE::renderContextInitialized(ctx);
 }
 
 
 
 
 
-void CONTEXT_CLASS::initialize(QOpenGLContext *context)
+#if QT_VERSION >= 0x050800
+void RENDER_CONTEXT_CLASS::initialize(void *inCtx)
 {
+    QOpenGLContext *context = static_cast<QOpenGLContext*>(inCtx);
+#else
+void RENDER_CONTEXT_CLASS::initialize(QOpenGLContext *inCtx)
+{
+    QOpenGLContext *context = inCtx;
+#endif
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither)
@@ -401,12 +400,12 @@ void CONTEXT_CLASS::initialize(QOpenGLContext *context)
 #endif
 #endif
 
-    CONTEXT_CLASS_BASE::initialize(context);
+    RENDER_CONTEXT_CLASS_BASE::initialize(inCtx);
 }
 
-void CONTEXT_CLASS::invalidate()
+void RENDER_CONTEXT_CLASS::invalidate()
 {
-    CONTEXT_CLASS_BASE::invalidate();
+    RENDER_CONTEXT_CLASS_BASE::invalidate();
 
 #ifdef CUSTOMCONTEXT_DITHER
     delete m_ditherProgram;
@@ -439,7 +438,7 @@ QSurfaceFormat Context::defaultSurfaceFormat() const
 #endif
 
 #if QT_VERSION >= 0x050600
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
+QSGTexture *RENDER_CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
 {
     if (flags & QQuickWindow::TextureCanUseAtlas) {
 #ifdef CUSTOMCONTEXT_ATLASTEXTURE
@@ -484,12 +483,12 @@ QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
 #endif
 
 
-    return CONTEXT_CLASS_BASE::createTexture(image, flags);
+    return RENDER_CONTEXT_CLASS_BASE::createTexture(image, flags);
 }
 
 #else
 
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image) const
+QSGTexture *RENDER_CONTEXT_CLASS::createTexture(const QImage &image) const
 {
 #ifdef CUSTOMCONTEXT_ATLASTEXTURE
     if (m_atlasTexture) {
@@ -504,7 +503,7 @@ QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image) const
         return new MacTexture(image);
 #endif
 
-    return CONTEXT_CLASS_BASE::createTexture(image);
+    return RENDER_CONTEXT_CLASS_BASE::createTexture(image);
 }
 
 #if QT_VERSION >= 0x050200
@@ -537,7 +536,7 @@ QSGTexture *RenderContext::createTextureNoAtlas(const QImage &image) const
     }
 #endif
 
-    return CONTEXT_CLASS_BASE::createTextureNoAtlas(image);
+    return RENDER_CONTEXT_CLASS_BASE::createTextureNoAtlas(image);
 }
 
 // Qt 5.2 branch
@@ -547,7 +546,7 @@ QSGTexture *RenderContext::createTextureNoAtlas(const QImage &image) const
 #endif
 
 
-QSGRenderer *CONTEXT_CLASS::createRenderer()
+QSGRenderer *RENDER_CONTEXT_CLASS::createRenderer()
 {
 #ifdef CUSTOMCONTEXT_OVERLAPRENDERER
     if (m_overlapRenderer) {
@@ -560,7 +559,7 @@ QSGRenderer *CONTEXT_CLASS::createRenderer()
 #ifdef CUSTOMCONTEXT_SIMPLERENDERER
     return new QSGSimpleRenderer::Renderer(this);
 #endif
-    return CONTEXT_CLASS_BASE::createRenderer();
+    return RENDER_CONTEXT_CLASS_BASE::createRenderer();
 }
 
 
@@ -576,7 +575,7 @@ QAnimationDriver *Context::createAnimationDriver(QObject *parent)
         return new SwapListeningAnimationDriver();
 #endif
 
-   return QSGContext::createAnimationDriver(parent);
+   return CONTEXT_CLASS_BASE::createAnimationDriver(parent);
 }
 
 
@@ -616,9 +615,13 @@ QQuickTextureFactory *Context::createTextureFactory(const QImage &image)
 
 
 
-void CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
+#if QT_VERSION >= 0x050800
+void RENDER_CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, uint fbo)
+#else
+void RENDER_CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
+#endif
 {
-    CONTEXT_CLASS_BASE::renderNextFrame(renderer, fbo);
+    RENDER_CONTEXT_CLASS_BASE::renderNextFrame(renderer, fbo);
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither) {
@@ -653,12 +656,12 @@ public:
 
 QSGImageNode *Context::createImageNode()
 {
-    return m_defaultImageNodes ? QSGContext::createImageNode() : new MSAAImageNode();
+    return m_defaultImageNodes ? CONTEXT_CLASS_BASE::createImageNode() : new MSAAImageNode();
 }
 
 QSGRectangleNode *Context::createRectangleNode()
 {
-    return m_defaultRectangleNodes ? QSGContext::createRectangleNode() : new MSAARectangleNode();
+    return m_defaultRectangleNodes ? CONTEXT_CLASS_BASE::createRectangleNode() : new MSAARectangleNode();
 }
 #endif
 
