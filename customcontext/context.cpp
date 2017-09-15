@@ -615,7 +615,7 @@ QQuickTextureFactory *Context::createTextureFactory(const QImage &image)
 
 
 
-if QT_VERSION >= 0x050800
+#if QT_VERSION >= 0x050800
 void RENDER_CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, uint fbo)
 #else
 void RENDER_CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
