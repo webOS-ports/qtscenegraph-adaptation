@@ -60,7 +60,9 @@ public:
 
     QStringList keys() const;
     QSGContext *create(const QString &key) const;
+#if QT_VERSION >= 0x050800
     QSGContextFactoryInterface::Flags flags(const QString &key) const;
+#endif
     QQuickTextureFactory *createTextureFactoryFromImage(const QImage &image);
 
     static CustomContext::Context *instance;
