@@ -59,22 +59,51 @@
 #include "threaduploadtexture.h"
 #endif
 
+#if QT_VERSION >= 0x050800
+#include <private/qsgdefaultcontext_p.h>
+#include <private/qsgdefaultrendercontext_p.h>
+#endif
 
 #if QT_VERSION >= 0x050200
 struct QSGMaterialType;
+#endif
+
+#if QT_VERSION >= 0x050800
+#define CONTEXT_CLASS Context
+#define CONTEXT_CLASS_BASE QSGDefaultContext
+#define RENDER_CONTEXT_CLASS RenderContext
+#define RENDER_CONTEXT_CLASS_BASE QSGDefaultRenderContext
+#define COMPILESHADER_METHOD compileShader
+#elif QT_VERSION >= 0x050200
+#define CONTEXT_CLASS Context
+#define CONTEXT_CLASS_BASE QSGContext
+#define RENDER_CONTEXT_CLASS RenderContext
+#define RENDER_CONTEXT_CLASS_BASE QSGRenderContext
+#define COMPILESHADER_METHOD compile
+#else
+#define CONTEXT_CLASS Context
+#define CONTEXT_CLASS_BASE QSGContext
+#define RENDER_CONTEXT_CLASS Context
+#define RENDER_CONTEXT_CLASS_BASE QSGContext
+#define COMPILESHADER_METHOD compile
 #endif
 
 namespace CustomContext
 {
 
 #if QT_VERSION >= 0x050200
-class RenderContext : public QSGRenderContext
+class RenderContext : public RENDER_CONTEXT_CLASS_BASE
 {
 public:
     RenderContext(QSGContext *ctx);
+	#if QT_VERSION < 0x050800
     void initialize(QOpenGLContext *context);
-    void invalidate();
     void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
+	#else
+    void initialize(void *context);
+    void renderNextFrame(QSGRenderer *renderer, uint fbo);
+	#endif
+    void invalidate();
 
 #if QT_VERSION < 0x050600
     QSGTexture *createTexture(const QImage &image) const;
@@ -86,7 +115,7 @@ public:
     QSGRenderer *createRenderer();
 
 #ifdef PROGRAM_BINARY
-    void compile(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0);
+    void COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0);
 #endif
 
 #ifdef CUSTOMCONTEXT_DITHER
@@ -110,7 +139,7 @@ public:
 };
 #endif
 
-class Context : public QSGContext
+class Context : public CONTEXT_CLASS_BASE
 {
     Q_OBJECT
 public:
@@ -123,6 +152,7 @@ public:
     void initialize(QOpenGLContext *context);
     void invalidate();
     void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
+	
     QSGTexture *createTexture(const QImage &image) const;
     QSGRenderer *createRenderer();
 #endif
