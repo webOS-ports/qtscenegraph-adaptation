@@ -112,11 +112,11 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
     const QImage &image = (customcontext_no_bgra && !image_is_rgba) ? image_swapped : image_in;
     int usage = HYBRIS_USAGE_SW_READ_RARELY | HYBRIS_USAGE_SW_WRITE_RARELY | HYBRIS_USAGE_HW_TEXTURE;
 
-    hasAlpha = image.hasAlphaChannel();
-
     if (customcontext_no_bgra && !image_is_rgba) {
         image_swapped = image_in.rgbSwapped();
     }
+
+    hasAlpha = image.hasAlphaChannel();
 
     if (!customcontext_no_bgra) {
         format = image_is_rgba
