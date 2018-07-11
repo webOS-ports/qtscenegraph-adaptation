@@ -48,7 +48,11 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QElapsedTimer>
 
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLFunctions>
+
 #include <QtQuick/qsgmaterial.h>
+
 
 #include <EGL/egl.h>
 
@@ -230,7 +234,7 @@ void ProgramBinaryStore::purge(const QByteArray &key)
 void ProgramBinaryStore::compileAndInsert(QSGRenderContext *rc, const QByteArray &key, QSGMaterialShader *s, QSGMaterial *m, const char *v, const char *f)
 {
     // Use the baseclass impl to do the actual compilation
-    rc->QSGRenderContext::compile(s, m, v, f);
+    static_cast<QSGDefaultRenderContext *>(rc)->QSGDefaultRenderContext::compileShader(s, m, v, f);
     QOpenGLShaderProgram *p = s->program();
     if (p->isLinked()) {
         ProgramBinary *b = new ProgramBinary;
@@ -252,13 +256,13 @@ void ProgramBinaryStore::compileAndInsert(QSGRenderContext *rc, const QByteArray
     }
 }
 
-void RenderContext::compile(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex, const char *fragment)
+void RenderContext::compileShader(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex, const char *fragment)
 {
     Q_ASSERT(QOpenGLContext::currentContext()->extensions().contains("GL_OES_get_program_binary"));
 
     // We cannot cache shaders which have custom compilation
     if (material->flags() & QSGMaterial::CustomCompileStep) {
-        QSGRenderContext::compile(shader, material, vertex, fragment);
+        QSGDefaultRenderContext::compileShader(shader, material, vertex, fragment);
         return;
     }
 

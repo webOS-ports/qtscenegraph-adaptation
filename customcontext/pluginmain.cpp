@@ -48,6 +48,11 @@ ContextPlugin::ContextPlugin(QObject *parent)
 {
 }
 
+QSGContextFactoryInterface::Flags ContextPlugin::flags(const QString &) const
+{
+    return SupportsShaderEffectNode;
+}
+
 QStringList ContextPlugin::keys() const
 {
     return QStringList() << QLatin1String("customcontext");
