@@ -65,16 +65,8 @@
 #include "animation/swaplisteninganimationdriver.h"
 #endif
 
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-#include "renderer/overlaprenderer.h"
-#endif
-
 #ifdef CUSTOMCONTEXT_SIMPLERENDERER
 #include "renderer/simplerenderer.h"
-#endif
-
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-#include "mactexture.h"
 #endif
 
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
@@ -89,79 +81,25 @@
 #include "hybristexture.h"
 #endif
 
-#ifdef CUSTOMCONTEXT_MSAA
-#include <private/qsgdefaultimagenode_p.h>
-#include <private/qsgdefaultrectanglenode_p.h>
-#endif
-
-#if QT_VERSION >= 0x050200
-#define CONTEXT_CLASS RenderContext
-#define CONTEXT_CLASS_BASE QSGRenderContext
-#else
-#define CONTEXT_CLASS Context
-#define CONTEXT_CLASS_BASE QSGContext
-#endif
-
-#if QT_VERSION >= 0x050200
 #ifndef QSG_NO_RENDERER_TIMING
 static bool qsg_render_timing = !qgetenv("QSG_RENDER_TIMING").isEmpty();
-#endif
 #endif
 
 namespace CustomContext
 {
 
-#if QT_VERSION >= 0x050200
 RenderContext::RenderContext(QSGContext *ctx)
-    : QSGRenderContext(ctx)
+    : QSGDefaultRenderContext(ctx)
 {
 #ifdef CUSTOMCONTEXT_DITHER
     m_dither = qgetenv("CUSTOMCONTEXT_NO_DITHER").isEmpty();
     m_ditherProgram = 0;
     qDebug(" - ordered 2x2 dither: %s", m_dither ? "yes" : "no");
 #endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    m_overlapRenderer = qgetenv("CUSTOMCONTEXT_NO_OVERLAPRENDERER").isEmpty();
-    m_clipProgram = 0;
-    qDebug(" - overlaprenderer: %s", m_overlapRenderer ? "yes" : "no");
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    m_materialPreloading = qgetenv("CUSTOMCONTEXT_NO_MATERIAL_PRELOADING").isEmpty();
-    qDebug(" - material preload: %s", m_materialPreloading ? "yes" : "no");
-#endif
-#endif
 }
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-QSGMaterialShader *RenderContext::prepareMaterial(QSGMaterial *material)
-{
-    QSGMaterialType *type = material->type();
-    QSGMaterialShader *shader = m_materials.value(type);
-    if (shader)
-        return shader;
-
-#ifndef QSG_NO_RENDER_TIMING
-    if (qsg_render_timing)
-        qsg_renderer_timer.start();
-#endif
-
-    shader = material->createShader();
-    compile(shader, material);
-    QSGRenderContext::initialize(shader);
-    m_materials[type] = shader;
-
-#ifndef QSG_NO_RENDER_TIMING
-    if (qsg_render_timing)
-        printf("   - compiling material: %dms\n", (int) qsg_renderer_timer.elapsed());
-#endif
-
-    return shader;
-}
-#endif  //CUSTOMCONTEXT_OVERLAPRENDERER
-#endif  //QT_VERSION >= 0x050200
 
 Context::Context(QObject *parent)
-    : QSGContext(parent)
+    : QSGDefaultContext(parent)
     , m_sampleCount(0)
     , m_useMultisampling(false)
 #ifdef CUSTOMCONTEXT_HYBRISTEXTURE
@@ -188,47 +126,13 @@ Context::Context(QObject *parent)
     m_swapListeningAnimationDriver = qgetenv("CUSTOMCONTEXT_NO_SWAPLISTENINGANIMATIONDRIVER").isEmpty();
 #endif
 
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    m_atlasTexture = qgetenv("CUSTOMCONTEXT_NO_ATLASTEXTURE").isEmpty();
-#endif
-
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    m_macTexture = qgetenv("CUSTOMCONTEXT_NO_MACTEXTURE").isEmpty();
-#endif
-
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
     m_eglGrallocTexture = qEnvironmentVariableIsEmpty("CUSTOMCONTEXT_NO_EGLGRALLOCTEXTURE");
-#endif
-
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    m_threadUploadTexture = qgetenv("CUSTOMCONTEXT_NO_THREADUPLOADTEXTURE").isEmpty();
-    connect(this, SIGNAL(invalidated()), &m_threadUploadManager, SLOT(invalidated()), Qt::DirectConnection);
 #endif
 
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
     m_nonPreservedTexture = qgetenv("CUSTOMCONTEXT_NO_NONPRESERVEDTEXTURE").isEmpty();
 #endif
-
-#ifdef CUSTOMCONTEXT_MSAA
-    m_defaultImageNodes = qEnvironmentVariableIsSet("CUSTOMCONTEXT_DEFAULT_IMAGENODES");
-    m_defaultRectangleNodes = qEnvironmentVariableIsSet("CUSTOMCONTEXT_DEFAULT_RECTANGLENODES");
-#endif
-
-#if QT_VERSION < 0x050200
-#ifdef CUSTOMCONTEXT_DITHER
-    m_dither = qgetenv("CUSTOMCONTEXT_NO_DITHER").isEmpty();
-    m_ditherProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    m_overlapRenderer = qgetenv("CUSTOMCONTEXT_NO_OVERLAPRENDERER").isEmpty();
-    m_clipProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    m_materialPreloading = qgetenv("CUSTOMCONTEXT_NO_MATERIAL_PRELOADING").isEmpty();
-#endif
-#endif  //QT_VERSION < 0x050200
 
 #ifdef CUSTOMCONTEXT_DEBUG
     qDebug("CustomContext created:");
@@ -245,41 +149,11 @@ Context::Context(QObject *parent)
 #ifdef CUSTOMCONTEXT_ANIMATIONDRIVER
     qDebug(" - custom animation driver: %s", m_animationDriver ? "yes" : "no");
 #endif
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    qDebug(" - atlas textures: %s", m_atlasTexture ? "yes" : "no" );
-#endif
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    qDebug(" - threaded texture upload: %s", m_threadUploadTexture ? "yes" : "no");
-#endif
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
     qDebug(" - EGLImage/Gralloc based texture: %s", m_eglGrallocTexture ? "yes" : "no");
 #endif
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    qDebug(" - mac textures: %s", m_macTexture ? "yes" : "no");
-#endif
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
     qDebug(" - non preserved textures: %s", m_nonPreservedTexture ? "yes" : "no");
-#endif
-
-#if QT_VERSION < 0x050200
-#ifdef CUSTOMCONTEXT_DITHER
-    qDebug(" - ordered 2x2 dither: %s", m_dither ? "yes" : "no");
-#endif
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    qDebug(" - overlaprenderer: %s", m_overlapRenderer ? "yes" : "no");
-#endif
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    qDebug(" - material preload: %s", m_materialPreloading ? "yes" : "no");
-#endif
-#endif  //QT_VERSION < 0x050200
-
-#ifdef CUSTOMCONTEXT_NO_DFGLYPHS
-    qDebug(" - distance fields disabled");
-#endif
-
-#ifdef CUSTOMCONTEXT_MSAA
-    qDebug(" - msaa rectangles: %s", !m_defaultRectangleNodes ? "yes" : "no");
-    qDebug(" - msaa images: %s", !m_defaultImageNodes ? "yes" : "no");
 #endif
 
 #endif
@@ -302,124 +176,34 @@ void Context::renderContextInitialized(QSGRenderContext *ctx)
 
 #endif // CUSTOMCONTEXT_HYBRISTEXTURE
 
-    QSGContext::renderContextInitialized(ctx);
+    QSGDefaultContext::renderContextInitialized(ctx);
 }
 
-
-
-
-
-void CONTEXT_CLASS::initialize(QOpenGLContext *context)
+void RenderContext::initialize(void *abstractContext)
 {
+    QOpenGLContext *context = static_cast<QOpenGLContext *>(abstractContext);
+
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_maxTextureSize);
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither)
         m_ditherProgram = new OrderedDither2x2(context);
 #endif
 
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    if (m_threadUploadTexture)
-        m_threadUploadManager.initialized(context);
-#endif
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-#ifdef CUSTOMCONTEXT_DEBUG
-    QElapsedTimer prepareTimer;
-    prepareTimer.start();
-#endif
-    if (m_materialPreloading) {
-        {
-            QSGVertexColorMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            QSGFlatColorMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            QSGOpaqueTextureMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            QSGTextureMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            SmoothTextureMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            SmoothColorMaterial m;
-            prepareMaterial(&m);
-        }
-        {
-            QSGDistanceFieldTextMaterial m;
-            prepareMaterial(&m);
-        }
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-        if (m_atlasTexture) {
-            m_atlasManager.preload();
-        }
-#endif
-    }
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    if (m_overlapRenderer) {
-        m_clipProgram = new QOpenGLShaderProgram();
-        m_clipProgram->addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                            "attribute highp vec4 vCoord;       \n"
-                                            "uniform highp mat4 matrix;         \n"
-                                            "void main() {                      \n"
-                                            "    gl_Position = matrix * vCoord; \n"
-                                            "}");
-        m_clipProgram->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                            "void main() {                                   \n"
-                                            "    gl_FragColor = vec4(0.81, 0.83, 0.12, 1.0); \n" // Trolltech green ftw!
-                                            "}");
-        m_clipProgram->bindAttributeLocation("vCoord", 0);
-        m_clipProgram->link();
-        m_clipMatrixID = m_clipProgram->uniformLocation("matrix");
-    }
-#endif
-
 #ifdef CUSTOMCONTEXT_DEBUG
     qDebug("CustomContext: initialized..");
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    if (m_materialPreloading)
-        qDebug(" - Standard materials compiled in: %d ms", (int) prepareTimer.elapsed());
-#endif
-#if QT_VERSION < 0x050200
-    qDebug(" - OpenGL extensions: %s", glGetString(GL_EXTENSIONS));
-    qDebug(" - OpenGL Vendor: %s", glGetString(GL_VENDOR));
-    qDebug(" - OpenGL Version: %s", glGetString(GL_VERSION));
-    qDebug(" - OpenGL Renderer: %s", glGetString(GL_RENDERER));
-    qDebug(" - OpenGL Shading Language Version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-    int textureSize;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &textureSize);
-    qDebug(" - GL Max Texture Size: %d", textureSize);
-#endif
 #endif
 
-    CONTEXT_CLASS_BASE::initialize(context);
+    QSGDefaultRenderContext::initialize(context);
 }
 
-void CONTEXT_CLASS::invalidate()
+void RenderContext::invalidate()
 {
-    CONTEXT_CLASS_BASE::invalidate();
+    QSGDefaultRenderContext::invalidate();
 
 #ifdef CUSTOMCONTEXT_DITHER
     delete m_ditherProgram;
     m_ditherProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    delete m_clipProgram;
-    m_clipProgram = 0;
-#endif
-
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    m_atlasManager.invalidate();
 #endif
 }
 
@@ -438,18 +222,9 @@ QSurfaceFormat Context::defaultSurfaceFormat() const
 }
 #endif
 
-#if QT_VERSION >= 0x050600
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
+QSGTexture *RenderContext::createTexture(const QImage &image, uint flags) const
 {
-    if (flags & QQuickWindow::TextureCanUseAtlas) {
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-        if (m_atlasTexture && atlas) {
-            QSGTexture *t = const_cast<Context *>(this)->m_atlasManager.create(image);
-            if (t)
-                return t;
-        }
-#endif
-    } else {
+    if (!(flags & QQuickWindow::TextureCanUseAtlas)) {
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
     if (static_cast<Context *>(sceneGraphContext())->hasEglGrallocTextures()) {
 
@@ -478,92 +253,16 @@ QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image, uint flags) const
 #endif
     }
 
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    if (m_macTexture)
-        return new MacTexture(image);
-#endif
-
-
-    return CONTEXT_CLASS_BASE::createTexture(image, flags);
+    return QSGDefaultRenderContext::createTexture(image, flags);
 }
 
-#else
-
-QSGTexture *CONTEXT_CLASS::createTexture(const QImage &image) const
+QSGRenderer *RenderContext::createRenderer()
 {
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    if (m_atlasTexture) {
-        QSGTexture *t = const_cast<Context *>(this)->m_atlasManager.create(image);
-        if (t)
-            return t;
-    }
-#endif
-
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    if (m_macTexture)
-        return new MacTexture(image);
-#endif
-
-    return CONTEXT_CLASS_BASE::createTexture(image);
-}
-
-#if QT_VERSION >= 0x050200
-QSGTexture *RenderContext::createTextureNoAtlas(const QImage &image) const
-{
-#ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
-    if (static_cast<Context *>(sceneGraphContext())->hasEglGrallocTextures()) {
-
-        // Only use gralloc textures for textures created outside the render thread.
-        // They can still block for as long as normal texture, so better to not waste
-        // the precious resource.
-        if (openglContext() != 0 && openglContext()->thread() != QThread::currentThread()) {
-            EglGrallocTexture *t = EglGrallocTexture::create(image);
-            if (t)
-                return t;
-        }
-    }
-#endif
-#ifdef CUSTOMCONTEXT_HYBRISTEXTURE
-    if (static_cast<Context *>(sceneGraphContext())->hasHybrisTextures()) {
-
-        // Only use hybris textures for textures created outside the render thread.
-        // They can still block for as long as normal texture, so better to not waste
-        // the precious resource.
-        if (openglContext() != 0 && openglContext()->thread() != QThread::currentThread()) {
-            HybrisTexture *t = HybrisTexture::create(image);
-            if (t)
-                return t;
-        }
-    }
-#endif
-
-    return CONTEXT_CLASS_BASE::createTextureNoAtlas(image);
-}
-
-// Qt 5.2 branch
-#endif
-
-// Qt 5.6 branch
-#endif
-
-
-QSGRenderer *CONTEXT_CLASS::createRenderer()
-{
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    if (m_overlapRenderer) {
-        OverlapRenderer::Renderer *renderer =
-                new OverlapRenderer::Renderer(this);
-        renderer->setClipProgram(m_clipProgram, m_clipMatrixID);
-        return renderer;
-    }
-#endif
 #ifdef CUSTOMCONTEXT_SIMPLERENDERER
     return new QSGSimpleRenderer::Renderer(this);
 #endif
-    return CONTEXT_CLASS_BASE::createRenderer();
+    return QSGDefaultRenderContext::createRenderer();
 }
-
-
 
 QAnimationDriver *Context::createAnimationDriver(QObject *parent)
 {
@@ -576,7 +275,7 @@ QAnimationDriver *Context::createAnimationDriver(QObject *parent)
         return new SwapListeningAnimationDriver();
 #endif
 
-   return QSGContext::createAnimationDriver(parent);
+   return QSGDefaultContext::createAnimationDriver(parent);
 }
 
 
@@ -601,11 +300,6 @@ QQuickTextureFactory *Context::createTextureFactory(const QImage &image)
     }
 #endif
 
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    if (m_threadUploadTexture)
-        return m_threadUploadManager.create(image);
-#endif
-
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
     if (m_nonPreservedTexture)
         return new NonPreservedTextureFactory(image, this);
@@ -616,9 +310,9 @@ QQuickTextureFactory *Context::createTextureFactory(const QImage &image)
 
 
 
-void CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
+void RenderContext::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
 {
-    CONTEXT_CLASS_BASE::renderNextFrame(renderer, fbo);
+    QSGDefaultRenderContext::renderNextFrame(renderer, fbo);
 
 #ifdef CUSTOMCONTEXT_DITHER
     if (m_dither) {
@@ -629,40 +323,6 @@ void CONTEXT_CLASS::renderNextFrame(QSGRenderer *renderer, GLuint fbo)
     }
 #endif
 }
-
-
-
-#ifdef CUSTOMCONTEXT_NO_DFGLYPHS
-QSGGlyphNode *Context::createGlyphNode()
-{
-    return new QSGDefaultGlyphNode();
-}
-#endif
-
-#ifdef CUSTOMCONTEXT_MSAA
-
-class MSAAImageNode : public QSGDefaultImageNode {
-public:
-    void setAntialiasing(bool) { }
-};
-
-class MSAARectangleNode : public QSGDefaultRectangleNode {
-public:
-    void setAntialiasing(bool) { }
-};
-
-QSGImageNode *Context::createImageNode()
-{
-    return m_defaultImageNodes ? QSGContext::createImageNode() : new MSAAImageNode();
-}
-
-QSGRectangleNode *Context::createRectangleNode()
-{
-    return m_defaultRectangleNodes ? QSGContext::createRectangleNode() : new MSAARectangleNode();
-}
-#endif
-
-
 
 
 } // namespace

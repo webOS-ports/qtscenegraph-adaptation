@@ -3,15 +3,7 @@ TARGET=customcontext
 
 CONFIG += plugin
 
-contains(QT_VERSION, ^5\\.[2-9]\\..*) {
-    message("Using Qt 5.2 or later")
-    CONFIG += customcontext_qt520
-}
-
 QT += gui-private core-private quick-private qml-private
-!customcontext_qt520:{
-    QT += v8-private
-}
 
 message("")
 
@@ -44,38 +36,6 @@ dither:{
 #
 # Textures
 #
-
-!customcontext_qt520:{
-    atlastexture:{
-        message("atlastexture .............: yes")
-        DEFINES += CUSTOMCONTEXT_ATLASTEXTURE
-        SOURCES += texture/atlastexture.cpp
-        HEADERS += texture/atlastexture.h
-        INCLUDEPATH += texture
-    } else {
-        message("atlastexture .............: no")
-    }
-
-    threaduploadtexture:{
-        message("threaduploadtexture ......: yes")
-        DEFINES += CUSTOMCONTEXT_THREADUPLOADTEXTURE
-        SOURCES += texture/threaduploadtexture.cpp
-        HEADERS += texture/threaduploadtexture.h
-        INCLUDEPATH += texture
-    } else {
-        message("threaduploadtexture ......: no")
-    }
-
-    mactexture:{
-        message("mactexture ...............: yes")
-        DEFINES += CUSTOMCONTEXT_MACTEXTURE
-        SOURCES += texture/mactexture.cpp
-        HEADERS += texture/mactexture.h
-        INCLUDEPATH += texture
-    } else {
-        message("mactexture ...............: no")
-    }
-}
 
 eglgralloctexture:{
     message("eglgralloctexture ........: yes (remember: ANDROID_SDK_INCLUDE)")
@@ -144,26 +104,6 @@ swaplistenanimationdriver:{
 # Renderers
 #
 
-overlaprenderer:{
-    message("overlaprenderer ..........: yes")
-    customcontext_qt520:{
-        message("  *** WARNING: you probably want to be using the default renderer in Qt 5.2 and higher")
-        message("  as it incorporates the optimizations of the overlaprenderer along with other optimizations ***")
-
-        materialpreload:{
-            message("  materialpreload ........: yes")
-            DEFINES += CUSTOMCONTEXT_MATERIALPRELOAD
-        } else {
-            message("  materialpreload ........: no")
-        }
-    }
-    DEFINES += CUSTOMCONTEXT_OVERLAPRENDERER
-    SOURCES += renderer/overlaprenderer.cpp
-    HEADERS += renderer/overlaprenderer.h
-} else {
-    message("overlaprenderer ..........: no")
-}
-
 simplerenderer:{
     message("simplerenderer ...........: yes")
     DEFINES += CUSTOMCONTEXT_SIMPLERENDERER
@@ -178,37 +118,13 @@ simplerenderer:{
 #
 # Other stuff
 #
-
-!customcontext_qt520:{
-    materialpreload:{
-        message("materialpreload ..........: yes")
-        DEFINES += CUSTOMCONTEXT_MATERIALPRELOAD
-    } else {
-        message("materialpreload ..........: no")
-    }
-
-    nodfglyphs:{
-        message("nodfglyphs ...............: yes")
-        DEFINES += CUSTOMCONTEXT_NO_DFGLYPHS
-    } else {
-        message("nodfglyphs ...............: no")
-    }
-
-    msaa:{
-        message("msaa .....................: yes")
-        DEFINES += CUSTOMCONTEXT_MSAA
-    } else {
-        message("msaa .....................: no")
-    }
+programbinary: {
+    message("programbinary ............: yes")
+    DEFINES += PROGRAM_BINARY
+    SOURCES += programbinary.cpp
+    LIBS += -lEGL
 } else {
-    programbinary: {
-        message("programbinary ............: yes")
-        DEFINES += PROGRAM_BINARY
-        SOURCES += programbinary.cpp
-        LIBS += -lEGL
-    } else {
-        message("programbinary ............: no")
-    }
+    message("programbinary ............: no")
 }
 
 surfaceformat:{
@@ -245,7 +161,6 @@ INSTALLS += target files
 !win*:DEFINES+=ENABLE_PROFILING
 
 arm_build {
-    DEFINES += USE_HALF_FLOAT
     QMAKE_CXXFLAGS += -mfp16-format=ieee -mfpu=neon
 } else {
     DEFINES += DESKTOP_BUILD

@@ -38,6 +38,7 @@
 
 #include <private/qsgcontext_p.h>
 #include <private/qsgrenderer_p.h>
+#include <private/qsgdefaultrendercontext_p.h>
 
 class QSGBasicShaderManager : public QObject
 {
@@ -75,7 +76,7 @@ public:
             return shader;
 
         shader = static_cast<QSGMaterialShader *>(material->createShader());
-        m_context->compile(shader, const_cast<QSGMaterial *>(material));
+        static_cast<QSGDefaultRenderContext *>(m_context)->compileShader(shader, const_cast<QSGMaterial *>(material));
         m_context->initialize(shader);
 
         m_shaders[type] = shader;
