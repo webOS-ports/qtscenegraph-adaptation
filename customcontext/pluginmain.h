@@ -58,9 +58,10 @@ class ContextPlugin : public QSGContextPlugin
 public:
     ContextPlugin(QObject *parent = 0);
 
-    QStringList keys() const;
-    QSGContext *create(const QString &key) const;
-    QQuickTextureFactory *createTextureFactoryFromImage(const QImage &image);
+    Flags flags(const QString &key) const override;
+    QStringList keys() const override;
+    QSGContext *create(const QString &key) const override;
+    QQuickTextureFactory *createTextureFactoryFromImage(const QImage &image) override;
 
     static CustomContext::Context *instance;
 };

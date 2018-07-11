@@ -43,7 +43,8 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include <private/qsgcontext_p.h>
+#include <private/qsgdefaultcontext_p.h>
+#include <private/qsgdefaultrendercontext_p.h>
 #include <QtCore/QElapsedTimer>
 #include <QtGui/QOpenGLShaderProgram>
 
@@ -51,42 +52,28 @@
 #include "renderhooks/ordereddither2x2.h"
 #endif
 
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-#include "atlastexture.h"
-#endif
-
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-#include "threaduploadtexture.h"
-#endif
-
-
-#if QT_VERSION >= 0x050200
+QT_BEGIN_NAMESPACE
 struct QSGMaterialType;
-#endif
+class QSGMaterialShader;
+QT_END_NAMESPACE
 
 namespace CustomContext
 {
 
-#if QT_VERSION >= 0x050200
-class RenderContext : public QSGRenderContext
+class RenderContext : public QSGDefaultRenderContext
 {
 public:
     RenderContext(QSGContext *ctx);
-    void initialize(QOpenGLContext *context);
-    void invalidate();
-    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
+    void initialize(void *context) override;
+    void invalidate() override;
+    void renderNextFrame(QSGRenderer *renderer, GLuint fbo) override;
 
-#if QT_VERSION < 0x050600
-    QSGTexture *createTexture(const QImage &image) const;
-    QSGTexture *createTextureNoAtlas(const QImage &image) const;
-#else
-    QSGTexture *createTexture(const QImage &image, uint flags) const;
-#endif
+    QSGTexture *createTexture(const QImage &image, uint flags) const override;
 
-    QSGRenderer *createRenderer();
+    QSGRenderer *createRenderer() override;
 
 #ifdef PROGRAM_BINARY
-    void compile(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0);
+    void compileShader(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex = 0, const char *fragment = 0) override;
 #endif
 
 #ifdef CUSTOMCONTEXT_DITHER
@@ -94,53 +81,22 @@ public:
     OrderedDither2x2 *m_ditherProgram;
 #endif
 
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    bool m_overlapRenderer;
-    QOpenGLShaderProgram *m_clipProgram;
-    int m_clipMatrixID;
-
-    QElapsedTimer qsg_renderer_timer;
-    QSGMaterialShader *prepareMaterial(QSGMaterial *material);
-    QHash<QSGMaterialType *, QSGMaterialShader *> m_materials;
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    bool m_materialPreloading;
-#endif
-#endif
 };
-#endif
 
-class Context : public QSGContext
+class Context : public QSGDefaultContext
 {
     Q_OBJECT
 public:
     explicit Context(QObject *parent = 0);
 
-#if QT_VERSION >= 0x050200
-    QSGRenderContext *createRenderContext() { return new RenderContext(this); }
-    void renderContextInitialized(QSGRenderContext *renderContext) Q_DECL_OVERRIDE;
-#else
-    void initialize(QOpenGLContext *context);
-    void invalidate();
-    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
-    QSGTexture *createTexture(const QImage &image) const;
-    QSGRenderer *createRenderer();
-#endif
+    QSGRenderContext *createRenderContext() override { return new RenderContext(this); }
+    void renderContextInitialized(QSGRenderContext *renderContext) override;
 
-    QAnimationDriver *createAnimationDriver(QObject *parent);
+    QAnimationDriver *createAnimationDriver(QObject *parent) override;
 #ifdef CUSTOMCONTEXT_SURFACEFORMAT
     QSurfaceFormat defaultSurfaceFormat() const;
 #endif
     QQuickTextureFactory *createTextureFactory(const QImage &image);
-
-#ifdef CUSTOMCONTEXT_MSAA
-    QSGImageNode *createImageNode();
-    QSGRectangleNode *createRectangleNode();
-#endif
-
-#ifdef CUSTOMCONTEXT_NO_DFGLYPHS
-    QSGGlyphNode *createGlyphNode();
-#endif
 
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
     bool hasEglGrallocTextures() const { return m_eglGrallocTexture; }
@@ -156,40 +112,6 @@ private:
     uint m_useMultisampling : 1;
     uint m_depthBuffer : 1;
 
-#if QT_VERSION < 0x50200
-    friend class RenderContext;
-
-#ifdef CUSTOMCONTEXT_MATERIALPRELOAD
-    bool m_materialPreloading;
-#endif
-
-#ifdef CUSTOMCONTEXT_DITHER
-    bool m_dither;
-    OrderedDither2x2 *m_ditherProgram;
-#endif
-
-#ifdef CUSTOMCONTEXT_OVERLAPRENDERER
-    bool m_overlapRenderer;
-    QOpenGLShaderProgram *m_clipProgram;
-    int m_clipMatrixID;
-#endif
-
-#ifdef CUSTOMCONTEXT_ATLASTEXTURE
-    TextureAtlasManager m_atlasManager;
-    bool m_atlasTexture;
-#endif
-
-#ifdef CUSTOMCONTEXT_MACTEXTURE
-    bool m_macTexture;
-#endif
-
-#ifdef CUSTOMCONTEXT_THREADUPLOADTEXTURE
-    ThreadUploadTextureManager m_threadUploadManager;
-    bool m_threadUploadTexture;
-#endif
-
-#endif // Qt < 5.2.0
-
 #ifdef CUSTOMCONTEXT_NONPRESERVEDTEXTURE
     bool m_nonPreservedTexture;
     friend class NonPreservedTextureFactory;
@@ -201,11 +123,6 @@ private:
 
 #ifdef CUSTOMCONTEXT_SWAPLISTENINGANIMATIONDRIVER
     bool m_swapListeningAnimationDriver;
-#endif
-
-#ifdef CUSTOMCONTEXT_MSAA
-    bool m_defaultRectangleNodes;
-    bool m_defaultImageNodes;
 #endif
 
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
