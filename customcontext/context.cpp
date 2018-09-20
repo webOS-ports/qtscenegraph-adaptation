@@ -89,8 +89,8 @@
 #include "hybristexture.h"
 #endif
 
-#ifdef CUSTOMCONTEXT_MSAA
 #include <private/qsgdefaultimagenode_p.h>
+#ifdef CUSTOMCONTEXT_MSAA
 #include <private/qsgdefaultrectanglenode_p.h>
 #endif
 
@@ -209,8 +209,8 @@ Context::Context(QObject *parent)
     m_nonPreservedTexture = qgetenv("CUSTOMCONTEXT_NO_NONPRESERVEDTEXTURE").isEmpty();
 #endif
 
-#ifdef CUSTOMCONTEXT_MSAA
     m_defaultImageNodes = qEnvironmentVariableIsSet("CUSTOMCONTEXT_DEFAULT_IMAGENODES");
+#ifdef CUSTOMCONTEXT_MSAA
     m_defaultRectangleNodes = qEnvironmentVariableIsSet("CUSTOMCONTEXT_DEFAULT_RECTANGLENODES");
 #endif
 
@@ -639,23 +639,27 @@ QSGGlyphNode *Context::createGlyphNode()
 }
 #endif
 
+class DynamicImageNode : public QSGDefaultImageNode
+{
+public:
+    void setTexture(QSGTexture *texture) override
+    {
+        setFlag(QSGNode::UsePreprocess, qobject_cast<QSGDynamicTexture *>(texture));
+
+        QSGDefaultImageNode::setTexture(texture);
+    }
+
 #ifdef CUSTOMCONTEXT_MSAA
-
-class MSAAImageNode : public QSGDefaultImageNode {
-public:
     void setAntialiasing(bool) { }
-};
-
-class MSAARectangleNode : public QSGDefaultRectangleNode {
-public:
-    void setAntialiasing(bool) { }
+#endif
 };
 
 QSGImageNode *Context::createImageNode()
 {
-    return m_defaultImageNodes ? QSGContext::createImageNode() : new MSAAImageNode();
+    return m_defaultImageNodes ? QSGContext::createImageNode() : new DynamicImageNode();
 }
 
+#ifdef CUSTOMCONTEXT_MSAA
 QSGRectangleNode *Context::createRectangleNode()
 {
     return m_defaultRectangleNodes ? QSGContext::createRectangleNode() : new MSAARectangleNode();

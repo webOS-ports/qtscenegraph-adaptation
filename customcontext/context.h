@@ -133,8 +133,9 @@ public:
 #endif
     QQuickTextureFactory *createTextureFactory(const QImage &image);
 
-#ifdef CUSTOMCONTEXT_MSAA
     QSGImageNode *createImageNode();
+#ifdef CUSTOMCONTEXT_MSAA
+
     QSGRectangleNode *createRectangleNode();
 #endif
 
@@ -205,8 +206,8 @@ private:
 
 #ifdef CUSTOMCONTEXT_MSAA
     bool m_defaultRectangleNodes;
-    bool m_defaultImageNodes;
 #endif
+    bool m_defaultImageNodes;
 
 #ifdef CUSTOMCONTEXT_EGLGRALLOCTEXTURE
     bool m_eglGrallocTexture;
