@@ -75,8 +75,8 @@ extern "C" {
     typedef void (* _glGetProgramBinary)(GLuint program, GLsizei bufSize, GLsizei *length, GLenum *binaryFormat, void *binary);
     typedef void (* _glProgramBinary)(GLuint program, GLenum binaryFormat, const void *binary, GLint length);
 }
-static _glGetProgramBinary glGetProgramBinary;
-static _glProgramBinary glProgramBinary;
+static _glGetProgramBinary glGetProgramBinaryFunc;
+static _glProgramBinary glProgramBinaryFunc;
 
 namespace CustomContext {
 
@@ -131,10 +131,19 @@ public:
         qDebug() << "Customcontext: binary shaders stored in:" << m_location;
 #endif
 
-        glGetProgramBinary = (_glGetProgramBinary) eglGetProcAddress("glGetProgramBinaryOES");
-        glProgramBinary = (_glProgramBinary) eglGetProcAddress("glProgramBinaryOES");
+        // Verify OpenGL 3 support exists
+        QString version = (const char *)glGetString(GL_VERSION);
+        m_hasOpenGLES3 = version.startsWith("OpenGL ES 3");
 
-        Q_ASSERT(glGetProgramBinary && glProgramBinary);
+        if (m_hasOpenGLES3) {
+            glGetProgramBinaryFunc = (_glGetProgramBinary) eglGetProcAddress("glGetProgramBinary");
+            glProgramBinaryFunc = (_glProgramBinary) eglGetProcAddress("glProgramBinary");
+        } else {
+            glGetProgramBinaryFunc = (_glGetProgramBinary) eglGetProcAddress("glGetProgramBinaryOES");
+            glProgramBinaryFunc = (_glProgramBinary) eglGetProcAddress("glProgramBinaryOES");
+        }
+
+        Q_ASSERT(glGetProgramBinaryFunc && glProgramBinaryFunc);
     }
 
     static ProgramBinaryStore *self() {
@@ -148,6 +157,7 @@ public:
     ProgramBinary *lookup(const QByteArray key);
     void insert(ProgramBinary *shader);
     void purge(const QByteArray &key);
+    bool hasOpenGLES3() { return m_hasOpenGLES3; }
 
     void sanityCheck();
 
@@ -161,6 +171,8 @@ private:
     QString m_location;
 
     int m_maxShaderCount;
+
+    bool m_hasOpenGLES3;
 
     static ProgramBinaryStore *instance;
 };
@@ -239,7 +251,7 @@ void ProgramBinaryStore::compileAndInsert(RENDER_CONTEXT_CLASS_BASE *rc, const Q
         QOpenGLFunctions *funcs = QOpenGLContext::currentContext()->functions();
         funcs->glGetProgramiv(id, GL_PROGRAM_BINARY_LENGTH, &length);
         b->blob.resize(length);
-        glGetProgramBinary(id, b->blob.size(), &length, &b->format, b->blob.data());
+        glGetProgramBinaryFunc(id, b->blob.size(), &length, &b->format, b->blob.data());
         b->key = key;
         if (length != b->blob.size()) {
 #ifdef CUSTOMCONTEXT_DEBUG
@@ -254,7 +266,9 @@ void ProgramBinaryStore::compileAndInsert(RENDER_CONTEXT_CLASS_BASE *rc, const Q
 
 void RenderContext::COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial *material, const char *vertex, const char *fragment)
 {
-    Q_ASSERT(QOpenGLContext::currentContext()->extensions().contains("GL_OES_get_program_binary"));
+    ProgramBinaryStore *store = ProgramBinaryStore::self();
+    if (!store->hasOpenGLES3())
+        Q_ASSERT(QOpenGLContext::currentContext()->extensions().contains("GL_OES_get_program_binary"));
 
     // We cannot cache shaders which have custom compilation
     if (material->flags() & QSGMaterial::CustomCompileStep) {
@@ -262,7 +276,6 @@ void RenderContext::COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial 
         return;
     }
 
-    ProgramBinaryStore *store = ProgramBinaryStore::self();
     QByteArray key = store->key(shader, vertex, fragment);
     ProgramBinary *binary = store->lookup(key);
 
@@ -281,7 +294,7 @@ void RenderContext::COMPILESHADER_METHOD(QSGMaterialShader *shader, QSGMaterial 
         if (p->programId() == 0)
             p->addShader(0);
         // Upload precompiled binary
-        glProgramBinary(p->programId(), binary->format, binary->blob.data(), binary->blob.size());
+        glProgramBinaryFunc(p->programId(), binary->format, binary->blob.data(), binary->blob.size());
         p->link();
         if (!p->isLinked()) {
 #ifdef CUSTOMCONTEXT_DEBUG
