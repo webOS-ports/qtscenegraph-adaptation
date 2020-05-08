@@ -23,7 +23,7 @@ Qt Quick Scene Graph.
 
 %build
 export QTDIR=/usr/share/qt5
-%qmake5 -config "surfaceformat programbinary hybristexture"
+%qmake5 -config "surfaceformat programbinary hybristexture" DEFINES+=EGL_NO_X11
 
 %install
 rm -rf %{buildroot}
