@@ -301,7 +301,10 @@ void Context::renderContextInitialized(QSGRenderContext *ctx)
 
 
 
-#if QT_VERSION >= 0x050800
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+void RENDER_CONTEXT_CLASS::initialize(const InitParams *inCtx)
+{
+#elif QT_VERSION >= 0x050800
 void RENDER_CONTEXT_CLASS::initialize(void *inCtx)
 {
     QOpenGLContext *context = static_cast<QOpenGLContext*>(inCtx);
