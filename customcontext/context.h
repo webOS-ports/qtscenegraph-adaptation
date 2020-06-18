@@ -96,7 +96,10 @@ class RenderContext : public RENDER_CONTEXT_CLASS_BASE
 {
 public:
     RenderContext(QSGContext *ctx);
-#if QT_VERSION < 0x050800
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    void initialize(const InitParams *inCtx);
+    void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
+#elif QT_VERSION >= 0x050800
     void initialize(QOpenGLContext *context);
     void renderNextFrame(QSGRenderer *renderer, GLuint fbo);
 #else
