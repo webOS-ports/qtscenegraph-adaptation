@@ -1,10 +1,9 @@
 Name:       qtscenegraph-adaptation
-Summary:    Scenegraph adaptation from playground
+Summary:    Scenegraph adaptation for Droid
 Version:    git
 Release:    1%{?dist}
-Group:      Qt/Qt
-License:    LGPLv2.1 with exception or GPLv3
-URL:        https://qt.gitorious.org/qtplayground/scenegraph
+License:    LGPLv2 with exception or GPLv3 or Qt Commercial
+URL:        https://git.sailfishos.org/mer-core/qtscenegraph-adaptation
 Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  qt5-qtcore-devel
 BuildRequires:  qt5-qtgui-devel
@@ -42,6 +41,9 @@ rm -rf %{buildroot}
 #### File section
 %files
 %defattr(-,root,root,-)
+%license LICENSE.LGPL
+%license LGPL_EXCEPTION.txt
+%license LICENSE.GPL
 %{_libdir}/qt5/plugins/scenegraph/libcustomcontext.so
 
 
