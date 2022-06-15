@@ -8,10 +8,10 @@ equals(QT_MAJOR_VERSION, 5):greaterThan(QT_MINOR_VERSION, 1) {
     CONFIG += customcontext_qt520
 } 
 
-QT += gui-private core-private quick-private qml-private
-!customcontext_qt520:{
-    QT += v8-private
-}
+QT += gui-private core-private quick-private qml-private opengl
+#!customcontext_qt520:{
+#    QT += v8-private
+#}
 
 message("")
 

@@ -47,7 +47,6 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QThread>
 
-
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -142,7 +141,7 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
 
     status = eglHybrisCreateNativeBuffer(width, height, usage, format, &stride, &buffer);
     if (status != EGL_TRUE || !buffer) {
-        qDebug() << "eglHybrisCreateNativeBuffer failed, error:" << hex << eglGetError();
+        qDebug() << "eglHybrisCreateNativeBuffer failed, error:" << Qt::hex << eglGetError();
         return;
     }
 
@@ -152,7 +151,7 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
 
     status = eglHybrisLockNativeBuffer(buffer, HYBRIS_USAGE_SW_WRITE_RARELY, 0, 0, width, height, (void **) &data);
     if (status != EGL_TRUE || data == 0) {
-        qDebug() << "eglHybrisLockNativeBuffer failed, error:" << hex << eglGetError();
+        qDebug() << "eglHybrisLockNativeBuffer failed, error:" << Qt::hex << eglGetError();
         release();
         return;
     }
@@ -171,7 +170,7 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
     const int w = image.width();
     if (simpleCopy) {
         if (dbpl == image.bytesPerLine()) {
-            memcpy(data, image.constBits(), image.byteCount());
+            memcpy(data, image.constBits(), image.sizeInBytes());
         } else {
             int bpl = qMin(dbpl, image.bytesPerLine());
             for (int y=0; y<h; ++y)
@@ -206,7 +205,7 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
 #endif
 
     if (!eglHybrisUnlockNativeBuffer(buffer)) {
-        qDebug() << "eglHybrisUnlockNativeBuffer failed, error:" << hex << eglGetError();
+        qDebug() << "eglHybrisUnlockNativeBuffer failed, error:" << Qt::hex << eglGetError();
         release();
         return;
     }
@@ -222,7 +221,7 @@ NativeBuffer::NativeBuffer(const QImage &image_in)
                                    0);
 
     if (!eglImage) {
-        qDebug() << "eglCreateImageKHR failed, error:" << hex << eglGetError();
+        qDebug() << "eglCreateImageKHR failed, error:" << Qt::hex << eglGetError();
         release();
         return;
     }
@@ -323,7 +322,7 @@ void HybrisTexture::bind()
 
         int error;
         while ((error = glGetError()) != GL_NO_ERROR)
-            qDebug() << "Error after glEGLImageTargetTexture2DOES" << hex << error;
+            qDebug() << "Error after glEGLImageTargetTexture2DOES" << Qt::hex << error;
 
         if (Q_UNLIKELY(qsg_render_timing))
             qDebug("   - Hybristexture(%dx%d) bind=%d ms", m_buffer->width, m_buffer->height, (int) qsg_renderer_timer.elapsed());
@@ -392,7 +391,7 @@ QImage HybrisTextureFactory::image() const
 {
     void *data = 0;
     if (!eglHybrisLockNativeBuffer(m_buffer->buffer, HYBRIS_USAGE_SW_READ_RARELY, 0, 0, m_buffer->width, m_buffer->height, (void **) &data) || data == 0) {
-        qDebug() << "HybrisTextureFactory::image(): lock failed, cannot get image data; error:" << hex << eglGetError();
+        qDebug() << "HybrisTextureFactory::image(): lock failed, cannot get image data; error:" << Qt::hex << eglGetError();
         return QImage();
     }
 
@@ -401,7 +400,7 @@ QImage HybrisTextureFactory::image() const
                                                  : QImage::Format_RGB32).copy();
 
     if (!eglHybrisUnlockNativeBuffer(m_buffer->buffer)) {
-        qDebug() << "HybrisTextureFactory::image(): unlock failed; error:" << hex << eglGetError();
+        qDebug() << "HybrisTextureFactory::image(): unlock failed; error:" << Qt::hex << eglGetError();
         return QImage();
     }
 

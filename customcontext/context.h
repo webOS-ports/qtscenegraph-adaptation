@@ -45,7 +45,7 @@
 
 #include <private/qsgcontext_p.h>
 #include <QtCore/QElapsedTimer>
-#include <QtGui/QOpenGLShaderProgram>
+#include <QOpenGLShaderProgram>
 
 #ifdef CUSTOMCONTEXT_DITHER
 #include "renderhooks/ordereddither2x2.h"
